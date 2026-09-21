@@ -112,6 +112,18 @@ code {
   min-width: 0;
 }
 
+.badge-rol {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--acento-suave);
+  color: var(--acento-hover);
+  white-space: nowrap;
+}
+
 #usuario-email {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -229,6 +241,33 @@ form .boton:not(.secundario) {
 
 .mensaje.ok {
   color: var(--ok);
+}
+
+/* ---------- Filtros (supervisor) ---------- */
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--linea);
+}
+
+.campo-filtro {
+  margin-bottom: 0;
+  min-width: 9rem;
+  flex: 1 1 9rem;
+}
+
+.campo-filtro input,
+.campo-filtro select {
+  min-height: 2.5rem;
+}
+
+#btn-exportar {
+  align-self: end;
 }
 
 /* ---------- Tabla ---------- */

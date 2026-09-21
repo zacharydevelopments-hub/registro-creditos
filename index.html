@@ -49,6 +49,7 @@
     <header class="barra">
       <span class="marca">Registro de ventas</span>
       <div class="sesion">
+        <span id="badge-rol" class="badge-rol" hidden>Supervisor</span>
         <span id="usuario-email" class="suave"></span>
         <button class="boton secundario" type="button" id="btn-salir">Cerrar sesión</button>
       </div>
@@ -91,6 +92,37 @@
 
       <section class="panel" aria-labelledby="titulo-ventas">
         <h2 id="titulo-ventas">Tus últimas ventas</h2>
+
+        <div id="filtros-supervisor" class="filtros" hidden>
+          <div class="campo campo-filtro">
+            <label for="filtro-busqueda">Buscar</label>
+            <input id="filtro-busqueda" type="text" placeholder="Folio o razón social">
+          </div>
+          <div class="campo campo-filtro">
+            <label for="filtro-tipo">Tipo</label>
+            <select id="filtro-tipo">
+              <option value="">Todos</option>
+              <option value="CC">CC</option>
+              <option value="CI">CI</option>
+              <option value="Seguro">Seguro</option>
+              <option value="MPP">MPP</option>
+            </select>
+          </div>
+          <div class="campo campo-filtro">
+            <label for="filtro-sucursal">Sucursal</label>
+            <select id="filtro-sucursal">
+              <option value="">Todas</option>
+            </select>
+          </div>
+          <div class="campo campo-filtro">
+            <label for="filtro-ejecutivo">Ejecutivo</label>
+            <select id="filtro-ejecutivo">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <button class="boton secundario" type="button" id="btn-exportar">Exportar CSV</button>
+        </div>
+
         <p id="ventas-estado" class="suave"></p>
         <div id="ventas-tabla" class="tabla-wrap" hidden>
           <table>
@@ -100,6 +132,7 @@
                 <th scope="col">Tipo</th>
                 <th scope="col">Razón social</th>
                 <th scope="col">Sucursal</th>
+                <th scope="col" id="col-ejecutivo" hidden>Ejecutivo</th>
                 <th scope="col">Fecha</th>
               </tr>
             </thead>

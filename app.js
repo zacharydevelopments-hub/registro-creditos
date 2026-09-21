@@ -151,6 +151,9 @@
 
   // ---------- Listado ----------
 
+  let esSupervisor = false;
+  let todasLasVentas = []; // solo se usa en modo supervisor, para filtrar sin volver a consultar
+
   function celda(texto, clase) {
     const td = document.createElement("td");
     td.textContent = texto;
@@ -169,47 +172,151 @@
     tdTipo.append(chip);
     tr.append(tdTipo);
 
-    tr.append(celda(v.razon_social), celda(v.sucursal), celda(formatoFecha(v.created_at), "fecha"));
+    tr.append(celda(v.razon_social), celda(v.sucursal));
+
+    const tdEjecutivo = celda(v.user_email || "", "col-ejecutivo");
+    tdEjecutivo.hidden = !esSupervisor;
+    tr.append(tdEjecutivo);
+
+    tr.append(celda(formatoFecha(v.created_at), "fecha"));
     return tr;
   }
 
-  async function cargarVentas() {
+  function pintarFilas(data) {
     const cuerpo = $("ventas-cuerpo");
     const estado = $("ventas-estado");
-
-    const { data, error } = await db
-      .from("ventas")
-      .select("folio, tipo, razon_social, sucursal, created_at")
-      .order("created_at", { ascending: false })
-      .limit(20);
-
-    if (error) {
-      cuerpo.replaceChildren();
-      $("ventas-tabla").hidden = true;
-      estado.textContent = "No pudimos cargar tus ventas.";
-      return;
-    }
-
     cuerpo.replaceChildren(...data.map(fila));
     $("ventas-tabla").hidden = data.length === 0;
     estado.textContent = data.length
       ? ""
+      : esSupervisor
+      ? "No hay ventas que coincidan con el filtro."
       : "Aún no guardas ventas. Los folios que registres aparecerán aquí.";
+  }
+
+  // Rellena los <select> de filtro (sucursal, ejecutivo) con los valores presentes en los datos.
+  function actualizarOpcionesFiltro(data) {
+    function llenar(select, valores, textoTodos) {
+      const actual = select.value;
+      const opciones = [...new Set(valores)].filter(Boolean).sort((a, b) => a.localeCompare(b, "es"));
+      select.replaceChildren(new Option(textoTodos, ""));
+      for (const v of opciones) select.append(new Option(v, v));
+      if (opciones.includes(actual)) select.value = actual;
+    }
+    llenar($("filtro-sucursal"), data.map((v) => v.sucursal), "Todas");
+    llenar($("filtro-ejecutivo"), data.map((v) => v.user_email), "Todos");
+  }
+
+  function aplicarFiltros() {
+    const busqueda = $("filtro-busqueda").value.trim().toLowerCase();
+    const tipo = $("filtro-tipo").value;
+    const sucursal = $("filtro-sucursal").value;
+    const ejecutivo = $("filtro-ejecutivo").value;
+
+    const filtradas = todasLasVentas.filter((v) => {
+      if (tipo && v.tipo !== tipo) return false;
+      if (sucursal && v.sucursal !== sucursal) return false;
+      if (ejecutivo && v.user_email !== ejecutivo) return false;
+      if (busqueda) {
+        const texto = `${v.folio} ${v.razon_social}`.toLowerCase();
+        if (!texto.includes(busqueda)) return false;
+      }
+      return true;
+    });
+
+    pintarFilas(filtradas);
+    return filtradas;
+  }
+
+  function exportarCSV() {
+    const filas = aplicarFiltros();
+    const encabezado = ["Folio", "Tipo", "Razón social", "Sucursal", "Ejecutivo", "Fecha"];
+    const escapar = (texto) => `"${String(texto ?? "").replace(/"/g, '""')}"`;
+    const lineas = [
+      encabezado.join(","),
+      ...filas.map((v) =>
+        [v.folio, v.tipo, v.razon_social, v.sucursal, v.user_email, formatoFecha(v.created_at)]
+          .map(escapar)
+          .join(",")
+      ),
+    ];
+    const blob = new Blob([lineas.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ventas-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  $("filtro-busqueda").addEventListener("input", aplicarFiltros);
+  $("filtro-tipo").addEventListener("change", aplicarFiltros);
+  $("filtro-sucursal").addEventListener("change", aplicarFiltros);
+  $("filtro-ejecutivo").addEventListener("change", aplicarFiltros);
+  $("btn-exportar").addEventListener("click", exportarCSV);
+
+  async function cargarVentas() {
+    const estado = $("ventas-estado");
+    const columnas = "folio, tipo, razon_social, sucursal, user_email, created_at";
+
+    // El supervisor trae más registros y filtra en pantalla; el ejecutivo solo ve los suyos (RLS).
+    const consulta = db
+      .from("ventas")
+      .select(columnas)
+      .order("created_at", { ascending: false })
+      .limit(esSupervisor ? 500 : 20);
+
+    const { data, error } = await consulta;
+
+    if (error) {
+      $("ventas-cuerpo").replaceChildren();
+      $("ventas-tabla").hidden = true;
+      estado.textContent = "No pudimos cargar las ventas.";
+      return;
+    }
+
+    if (esSupervisor) {
+      todasLasVentas = data;
+      actualizarOpcionesFiltro(data);
+      aplicarFiltros();
+    } else {
+      pintarFilas(data);
+    }
+  }
+
+  // ---------- Rol (ejecutivo / supervisor) ----------
+
+  async function obtenerRol(usuario) {
+    const { data, error } = await db.from("profiles").select("role").eq("id", usuario.id).maybeSingle();
+    if (error || !data) return "ejecutivo"; // por defecto, si algo falla, se trata como ejecutivo
+    return data.role;
+  }
+
+  function aplicarVistaSegunRol() {
+    $("badge-rol").hidden = !esSupervisor;
+    $("filtros-supervisor").hidden = !esSupervisor;
+    $("col-ejecutivo").hidden = !esSupervisor;
+    $("titulo-ventas").textContent = esSupervisor ? "Todas las ventas" : "Tus últimas ventas";
   }
 
   // ---------- Sesión ----------
 
-  function entrar(usuario) {
+  async function entrar(usuario) {
     $("usuario-email").textContent = usuario.email || "";
     if (!$("sucursal").value) $("sucursal").value = leerSucursal();
     mostrar("app");
     $("folio").focus();
+
+    esSupervisor = (await obtenerRol(usuario)) === "supervisor";
+    aplicarVistaSegunRol();
     cargarVentas();
   }
 
   function irALogin() {
     $("form-venta").reset();
     $("ventas-cuerpo").replaceChildren();
+    todasLasVentas = [];
+    esSupervisor = false;
     mensaje("venta-mensaje", "");
     mostrar("login");
     $("login-email").focus();

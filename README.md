@@ -43,6 +43,23 @@ git push -u origin main
 2. **Framework Preset:** Other. Deja vacíos *Build Command* y *Output Directory*.
 3. Pulsa **Deploy**. Cada `git push` a `main` vuelve a publicar.
 
+## Rol de supervisor
+
+Además de los ejecutivos, ahora existe el rol **supervisor**: al entrar ve automáticamente una vista propia con **todas las ventas de todos los ejecutivos** (no solo las suyas), con filtros por sucursal, tipo, ejecutivo y búsqueda de folio/razón social, además de un botón para exportar a CSV.
+
+Todo usuario nuevo se crea como `ejecutivo` por defecto. Para convertir a alguien en supervisor:
+
+1. Abre Supabase → **SQL Editor**.
+2. Ejecuta (reemplazando el correo real):
+   ```sql
+   update public.profiles set role = 'supervisor' where email = 'correo@empresa.cl';
+   ```
+3. La próxima vez que esa persona inicie sesión (o recargue la página), verá la vista de supervisor.
+
+Para devolverlo a ejecutivo, ejecuta lo mismo con `role = 'ejecutivo'`.
+
+> Si ya tenías el proyecto de Supabase creado antes de este cambio, vuelve a pegar el contenido completo de `supabase/schema.sql` en el SQL Editor y ejecútalo: es seguro repetirlo, crea la tabla de perfiles, migra a los usuarios existentes y actualiza los permisos sin duplicar nada.
+
 ## Ver todos los registros
 
 Como administrador, revisa la tabla `ventas` en Supabase → **Table Editor** (ahí ves los registros de todos los ejecutivos, con el correo de quien los guardó). Puedes exportarla a CSV desde el mismo lugar.
