@@ -4,7 +4,7 @@ create table if not exists public.ventas (
   id           uuid primary key default gen_random_uuid(),
   folio        text not null check (length(btrim(folio)) > 0),
   tipo         text not null check (tipo in ('CC', 'CI', 'Seguro', 'MPP')),
-  razon_social text not null check (length(btrim(razon_social)) > 0),
+  razon_social text not null check (tipo in ('Callegari E Hijos', 'Sociedad Hermanas Callegari', 'Importadora Trento', 'Automotriz Balmaceda')),
   sucursal     text not null check (length(btrim(sucursal)) > 0),
   user_id      uuid not null default auth.uid(),
   user_email   text default (auth.jwt() ->> 'email'),
