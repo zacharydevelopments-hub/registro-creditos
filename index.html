@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registro de ventas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Cargando sesión -->
+  <main id="vista-carga" class="centro" aria-live="polite">
+    <p class="suave">Cargando…</p>
+  </main>
+
+  <!-- Aviso si falta configurar Supabase -->
+  <main id="vista-config" class="centro" hidden>
+    <div class="panel angosto">
+      <h1>Falta conectar Supabase</h1>
+      <p>Abre <code>config.js</code> y reemplaza la URL y la clave pública de tu proyecto. Los pasos están en el README.</p>
+    </div>
+  </main>
+
+  <!-- Login -->
+  <main id="vista-login" class="centro" hidden>
+    <div class="panel angosto">
+      <h1>Registro de ventas</h1>
+      <p class="suave">Ingresa con tu correo y contraseña.</p>
+      <form id="form-login">
+        <div class="campo">
+          <label for="login-email">Correo</label>
+          <input id="login-email" name="email" type="email" autocomplete="username" required>
+        </div>
+        <div class="campo">
+          <label for="login-password">Contraseña</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <button class="boton" type="submit" id="btn-login">Ingresar</button>
+        <p id="login-error" class="mensaje" role="alert"></p>
+      </form>
+    </div>
+  </main>
+
+  <!-- Aplicación -->
+  <div id="vista-app" hidden>
+    <header class="barra">
+      <span class="marca">Registro de ventas</span>
+      <div class="sesion">
+        <span id="usuario-email" class="suave"></span>
+        <button class="boton secundario" type="button" id="btn-salir">Cerrar sesión</button>
+      </div>
+    </header>
+
+    <main class="contenido">
+      <section class="panel" aria-labelledby="titulo-form">
+        <h2 id="titulo-form">Nueva venta</h2>
+        <form id="form-venta">
+          <div class="campo campo-folio">
+            <label for="folio">Folio de venta</label>
+            <input id="folio" name="folio" type="text" inputmode="text" autocomplete="off" maxlength="40" required>
+          </div>
+
+          <div class="campo">
+            <label for="tipo">Tipo</label>
+            <select id="tipo" name="tipo" required>
+              <option value="" selected disabled>Elige un tipo</option>
+              <option value="CC">CC</option>
+              <option value="CI">CI</option>
+              <option value="Seguro">Seguro</option>
+              <option value="MPP">MPP</option>
+            </select>
+          </div>
+
+          <div class="campo">
+            <label for="razon-social">Razón social</label>
+            <input id="razon-social" name="razon_social" type="text" autocomplete="off" maxlength="150" required>
+          </div>
+
+          <div class="campo">
+            <label for="sucursal">Sucursal</label>
+            <input id="sucursal" name="sucursal" type="text" autocomplete="off" maxlength="80" required>
+          </div>
+
+          <button class="boton" type="submit" id="btn-guardar">Guardar venta</button>
+          <p id="venta-mensaje" class="mensaje" role="status"></p>
+        </form>
+      </section>
+
+      <section class="panel" aria-labelledby="titulo-ventas">
+        <h2 id="titulo-ventas">Tus últimas ventas</h2>
+        <p id="ventas-estado" class="suave"></p>
+        <div id="ventas-tabla" class="tabla-wrap" hidden>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Folio</th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Razón social</th>
+                <th scope="col">Sucursal</th>
+                <th scope="col">Fecha</th>
+              </tr>
+            </thead>
+            <tbody id="ventas-cuerpo"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
