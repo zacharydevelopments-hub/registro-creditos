@@ -212,6 +212,8 @@
     const tipo = $("filtro-tipo").value;
     const sucursal = $("filtro-sucursal").value;
     const ejecutivo = $("filtro-ejecutivo").value;
+    const desde = $("filtro-desde").value; // "YYYY-MM-DD" o ""
+    const hasta = $("filtro-hasta").value;
 
     const filtradas = todasLasVentas.filter((v) => {
       if (tipo && v.tipo !== tipo) return false;
@@ -221,11 +223,44 @@
         const texto = `${v.folio} ${v.razon_social}`.toLowerCase();
         if (!texto.includes(busqueda)) return false;
       }
+      const fechaVenta = v.created_at.slice(0, 10); // fecha local aproximada, suficiente para filtrar por día
+      if (desde && fechaVenta < desde) return false;
+      if (hasta && fechaVenta > hasta) return false;
       return true;
     });
 
     pintarFilas(filtradas);
+    actualizarResumen(filtradas);
     return filtradas;
+  }
+
+  // Cuenta ocurrencias por columna y arma filas "valor / cantidad" ordenadas de mayor a menor.
+  function contarPor(data, campo) {
+    const conteo = new Map();
+    for (const v of data) {
+      const clave = v[campo] || "(sin dato)";
+      conteo.set(clave, (conteo.get(clave) || 0) + 1);
+    }
+    return [...conteo.entries()].sort((a, b) => b[1] - a[1]);
+  }
+
+  function pintarResumen(idBody, filas) {
+    const cuerpo = $(idBody);
+    cuerpo.replaceChildren(
+      ...filas.map(([nombre, cantidad]) => {
+        const tr = document.createElement("tr");
+        tr.append(celda(nombre), celda(String(cantidad)));
+        return tr;
+      })
+    );
+  }
+
+  function actualizarResumen(data) {
+    if (!esSupervisor) return;
+    $("resumen-supervisor").hidden = data.length === 0;
+    pintarResumen("resumen-ejecutivo", contarPor(data, "user_email"));
+    pintarResumen("resumen-sucursal", contarPor(data, "sucursal"));
+    pintarResumen("resumen-tipo", contarPor(data, "tipo"));
   }
 
   function exportarCSV() {
@@ -253,6 +288,8 @@
   $("filtro-tipo").addEventListener("change", aplicarFiltros);
   $("filtro-sucursal").addEventListener("change", aplicarFiltros);
   $("filtro-ejecutivo").addEventListener("change", aplicarFiltros);
+  $("filtro-desde").addEventListener("change", aplicarFiltros);
+  $("filtro-hasta").addEventListener("change", aplicarFiltros);
   $("btn-exportar").addEventListener("click", exportarCSV);
 
   async function cargarVentas() {
@@ -315,6 +352,13 @@
   function irALogin() {
     $("form-venta").reset();
     $("ventas-cuerpo").replaceChildren();
+    $("resumen-ejecutivo").replaceChildren();
+    $("resumen-sucursal").replaceChildren();
+    $("resumen-tipo").replaceChildren();
+    $("resumen-supervisor").hidden = true;
+    $("filtro-busqueda").value = "";
+    $("filtro-desde").value = "";
+    $("filtro-hasta").value = "";
     todasLasVentas = [];
     esSupervisor = false;
     mensaje("venta-mensaje", "");

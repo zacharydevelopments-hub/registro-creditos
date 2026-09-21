@@ -270,6 +270,46 @@ form .boton:not(.secundario) {
   align-self: end;
 }
 
+/* ---------- Resumen (supervisor) ---------- */
+
+.resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.resumen-tabla {
+  border: 1px solid var(--linea);
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  background: var(--fondo);
+}
+
+.resumen-tabla h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--tinta-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.resumen-tabla table {
+  font-size: 0.9rem;
+}
+
+.resumen-tabla th,
+.resumen-tabla td {
+  padding: 0.35rem 0.4rem;
+}
+
+.resumen-tabla td:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
 /* ---------- Tabla ---------- */
 
 .tabla-wrap {

@@ -120,7 +120,39 @@
               <option value="">Todos</option>
             </select>
           </div>
+          <div class="campo campo-filtro">
+            <label for="filtro-desde">Desde</label>
+            <input id="filtro-desde" type="date">
+          </div>
+          <div class="campo campo-filtro">
+            <label for="filtro-hasta">Hasta</label>
+            <input id="filtro-hasta" type="date">
+          </div>
           <button class="boton secundario" type="button" id="btn-exportar">Exportar CSV</button>
+        </div>
+
+        <div id="resumen-supervisor" class="resumen" hidden>
+          <div class="resumen-tabla">
+            <h3>Por ejecutivo</h3>
+            <table>
+              <thead><tr><th scope="col">Ejecutivo</th><th scope="col">Ventas</th></tr></thead>
+              <tbody id="resumen-ejecutivo"></tbody>
+            </table>
+          </div>
+          <div class="resumen-tabla">
+            <h3>Por sucursal</h3>
+            <table>
+              <thead><tr><th scope="col">Sucursal</th><th scope="col">Ventas</th></tr></thead>
+              <tbody id="resumen-sucursal"></tbody>
+            </table>
+          </div>
+          <div class="resumen-tabla">
+            <h3>Por tipo</h3>
+            <table>
+              <thead><tr><th scope="col">Tipo</th><th scope="col">Ventas</th></tr></thead>
+              <tbody id="resumen-tipo"></tbody>
+            </table>
+          </div>
         </div>
 
         <p id="ventas-estado" class="suave"></p>
