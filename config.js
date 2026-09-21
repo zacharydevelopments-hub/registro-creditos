@@ -5,6 +5,6 @@
 // la dan las políticas RLS de supabase/schema.sql.
 // NUNCA pegues aquí la clave "service_role" ni "secret".
 window.APP_CONFIG = {
-  SUPABASE_URL: "https://TU-PROYECTO.supabase.co",
-  SUPABASE_ANON_KEY: "TU-CLAVE-PUBLICA",
+  SUPABASE_URL: "https://gbwutqdmdoxmzcrofsib.supabase.co/rest/v1/",
+  SUPABASE_ANON_KEY: "sb_publishable_Oblb3DFjrvIV4gSDlXkitA_itB8xqq1",
 };
