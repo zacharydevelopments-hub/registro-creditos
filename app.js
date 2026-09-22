@@ -98,6 +98,25 @@
     });
   }
 
+  // ---------- Pestañas (solo supervisor: el ejecutivo no tiene navbar y ve todo junto) ----------
+
+  const PESTANAS = {
+    resumen: $("panel-ventas"),
+    ingreso: $("panel-nueva-venta"),
+    usuarios: $("panel-usuarios"),
+  };
+
+  function mostrarPestana(nombre) {
+    for (const [clave, panel] of Object.entries(PESTANAS)) panel.hidden = clave !== nombre;
+    document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("activa", b.dataset.tab === nombre));
+    if (nombre === "ingreso") $("folio").focus();
+    if (nombre === "usuarios") cargarUsuarios();
+  }
+
+  document.querySelectorAll(".tab").forEach((boton) =>
+    boton.addEventListener("click", () => mostrarPestana(boton.dataset.tab))
+  );
+
   // ---------- Login ----------
 
   $("form-login").addEventListener("submit", async (e) => {
@@ -440,6 +459,127 @@
     }
   }
 
+  // ---------- Usuarios (solo supervisor) ----------
+
+  // Todas las acciones de administración (listar/crear/bloquear/eliminar) pasan
+  // por la Edge Function "admin-usuarios": crear o eliminar una cuenta requiere
+  // la clave service_role, que nunca debe estar en el navegador.
+  async function llamarAdminUsuarios(cuerpo) {
+    const { data, error } = await db.functions.invoke("admin-usuarios", { body: cuerpo });
+    if (error) {
+      // Supabase entrega el mensaje real del servidor en el "context" de la respuesta.
+      let detalle = error.message;
+      try {
+        detalle = (await error.context.json()).error || detalle;
+      } catch {
+        /* si no se pudo leer el detalle, se usa el mensaje genérico */
+      }
+      throw new Error(detalle);
+    }
+    return data;
+  }
+
+  function formatoFechaCorta(iso) {
+    return new Date(iso).toLocaleDateString("es-CL", { dateStyle: "medium" });
+  }
+
+  function filaUsuario(u) {
+    const tr = document.createElement("tr");
+    tr.append(celda(u.email || ""));
+
+    const tdRol = document.createElement("td");
+    const chipRol = document.createElement("span");
+    chipRol.className = "tipo";
+    chipRol.textContent = u.rol === "supervisor" ? "Supervisor" : "Ejecutivo";
+    tdRol.append(chipRol);
+    tr.append(tdRol);
+
+    const tdEstado = document.createElement("td");
+    const chipEstado = document.createElement("span");
+    chipEstado.className = "estado-chip " + (u.bloqueado ? "bloqueado" : "activo");
+    chipEstado.textContent = u.bloqueado ? "Bloqueado" : "Activo";
+    tdEstado.append(chipEstado);
+    tr.append(tdEstado);
+
+    tr.append(celda(formatoFechaCorta(u.creado)));
+
+    const tdAcciones = document.createElement("td");
+    tdAcciones.className = "acciones-usuario";
+
+    const btnEstado = document.createElement("button");
+    btnEstado.type = "button";
+    btnEstado.className = "boton-mini";
+    btnEstado.textContent = u.bloqueado ? "Desbloquear" : "Bloquear";
+    btnEstado.addEventListener("click", () => accionUsuario(u, u.bloqueado ? "desbloquear" : "bloquear"));
+    tdAcciones.append(btnEstado);
+
+    const btnEliminar = document.createElement("button");
+    btnEliminar.type = "button";
+    btnEliminar.className = "boton-mini peligro";
+    btnEliminar.textContent = "Eliminar";
+    btnEliminar.addEventListener("click", () => accionUsuario(u, "eliminar"));
+    tdAcciones.append(btnEliminar);
+
+    tr.append(tdAcciones);
+    return tr;
+  }
+
+  async function accionUsuario(u, accion) {
+    const confirmaciones = {
+      bloquear: `¿Bloquear a ${u.email}? No podrá volver a iniciar sesión hasta que lo desbloquees.`,
+      desbloquear: `¿Desbloquear a ${u.email}?`,
+      eliminar: `¿Eliminar la cuenta de ${u.email}? Esta acción no se puede deshacer. Sus ventas ya guardadas se conservan.`,
+    };
+    if (!confirm(confirmaciones[accion])) return;
+
+    try {
+      await llamarAdminUsuarios({ accion, id: u.id });
+      cargarUsuarios();
+    } catch (e) {
+      alert("No se pudo completar la acción: " + e.message);
+    }
+  }
+
+  async function cargarUsuarios() {
+    const estado = $("usuarios-estado");
+    $("usuarios-tabla").hidden = true;
+    estado.textContent = "Cargando usuarios…";
+
+    try {
+      const { usuarios } = await llamarAdminUsuarios({ accion: "listar" });
+      $("usuarios-cuerpo").replaceChildren(...usuarios.map(filaUsuario));
+      $("usuarios-tabla").hidden = usuarios.length === 0;
+      estado.textContent = usuarios.length ? "" : "No hay usuarios.";
+    } catch (e) {
+      estado.textContent = "No se pudo cargar la lista de usuarios: " + e.message;
+    }
+  }
+
+  $("form-usuario").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const boton = $("btn-crear-usuario");
+    mensaje("usuario-mensaje", "");
+    boton.disabled = true;
+    boton.textContent = "Agregando…";
+
+    try {
+      await llamarAdminUsuarios({
+        accion: "crear",
+        email: $("nu-email").value.trim(),
+        password: $("nu-password").value,
+        rol: $("nu-rol").value,
+      });
+      mensaje("usuario-mensaje", "Usuario agregado.", "ok");
+      $("form-usuario").reset();
+      cargarUsuarios();
+    } catch (e) {
+      mensaje("usuario-mensaje", "No se pudo agregar el usuario: " + e.message, "error");
+    } finally {
+      boton.disabled = false;
+      boton.textContent = "Agregar usuario";
+    }
+  });
+
   // ---------- Rol (ejecutivo / supervisor) ----------
 
   async function obtenerRol(usuario) {
@@ -450,10 +590,20 @@
 
   function aplicarVistaSegunRol() {
     $("badge-rol").hidden = !esSupervisor;
-    $("panel-nueva-venta").hidden = esSupervisor;
+    $("tabs-supervisor").hidden = !esSupervisor;
     $("filtros-supervisor").hidden = !esSupervisor;
     $("col-ejecutivo").hidden = !esSupervisor;
     $("titulo-ventas").textContent = esSupervisor ? "Todas las ventas" : "Tus últimas ventas";
+
+    if (esSupervisor) {
+      // El supervisor navega por pestañas; "Resumen" es la que ve al entrar.
+      mostrarPestana("resumen");
+    } else {
+      // El ejecutivo no tiene pestañas: ve el formulario y su listado juntos, como siempre.
+      $("panel-nueva-venta").hidden = false;
+      $("panel-ventas").hidden = false;
+      $("panel-usuarios").hidden = true;
+    }
   }
 
   // ---------- Sesión ----------
@@ -465,7 +615,7 @@
     aplicarVistaSegunRol();
 
     $("usuario-email").textContent = usuario.email || "";
-    if (!esSupervisor) restaurarSeleccionGuardada();
+    restaurarSeleccionGuardada();
     mostrar("app");
     if (!esSupervisor) $("folio").focus();
 
@@ -489,6 +639,12 @@
       graficos[id].destroy();
       delete graficos[id];
     }
+    $("form-usuario").reset();
+    $("usuarios-cuerpo").replaceChildren();
+    $("usuarios-tabla").hidden = true;
+    $("usuarios-estado").textContent = "";
+    mensaje("usuario-mensaje", "");
+    mostrarPestana("resumen"); // deja la pestaña lista para la próxima sesión
     mensaje("venta-mensaje", "");
     mostrar("login");
     $("login-email").focus();

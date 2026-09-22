@@ -55,6 +55,12 @@
       </div>
     </header>
 
+    <nav class="tabs" id="tabs-supervisor" aria-label="Secciones" hidden>
+      <button type="button" class="tab" data-tab="resumen">Resumen</button>
+      <button type="button" class="tab" data-tab="ingreso">Ingreso de venta</button>
+      <button type="button" class="tab" data-tab="usuarios">Usuarios</button>
+    </nav>
+
     <main class="contenido">
       <section class="panel" id="panel-nueva-venta" aria-labelledby="titulo-form">
         <h2 id="titulo-form">Nueva venta</h2>
@@ -179,6 +185,46 @@
               </tr>
             </thead>
             <tbody id="ventas-cuerpo"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-usuarios" aria-labelledby="titulo-usuarios" hidden>
+        <h2 id="titulo-usuarios">Usuarios</h2>
+
+        <form id="form-usuario" class="filtros">
+          <div class="campo campo-filtro">
+            <label for="nu-email">Correo</label>
+            <input id="nu-email" type="email" autocomplete="off" required>
+          </div>
+          <div class="campo campo-filtro">
+            <label for="nu-password">Contraseña</label>
+            <input id="nu-password" type="text" minlength="6" autocomplete="off" required>
+          </div>
+          <div class="campo campo-filtro">
+            <label for="nu-rol">Rol</label>
+            <select id="nu-rol">
+              <option value="ejecutivo" selected>Ejecutivo</option>
+              <option value="supervisor">Supervisor</option>
+            </select>
+          </div>
+          <button class="boton" type="submit" id="btn-crear-usuario">Agregar usuario</button>
+        </form>
+        <p id="usuario-mensaje" class="mensaje" role="status"></p>
+
+        <p id="usuarios-estado" class="suave"></p>
+        <div id="usuarios-tabla" class="tabla-wrap" hidden>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Correo</th>
+                <th scope="col">Rol</th>
+                <th scope="col">Estado</th>
+                <th scope="col">Creado</th>
+                <th scope="col">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="usuarios-cuerpo"></tbody>
           </table>
         </div>
       </section>
