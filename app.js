@@ -272,12 +272,81 @@
     return [...conteo.entries()].sort((a, b) => b[1] - a[1]);
   }
 
+  // ---------- Gráficos (solo supervisor) ----------
+
+  const graficos = {}; // instancias de Chart.js, una por canvas, reutilizadas al filtrar
+
+  // Paleta consistente con los colores del resto de la página.
+  const PALETA = ["#0B5A8A", "#1B6E44", "#B3261E", "#9AA8B6", "#6B4FA0", "#C77D18"];
+
+  function grafico(id, config) {
+    const lienzo = $(id);
+    if (!lienzo || typeof window.Chart === "undefined") return; // Chart.js no cargó: no rompemos la página
+    if (graficos[id]) {
+      graficos[id].data = config.data;
+      graficos[id].update();
+    } else {
+      graficos[id] = new Chart(lienzo, config);
+    }
+  }
+
+  function opcionesBase(extra) {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 250 },
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      ...extra,
+    };
+  }
+
+  function actualizarGraficos(filas) {
+    // "filas" viene como [[etiqueta, cantidad], ...], ya ordenado de mayor a menor.
+    grafico("grafico-ejecutivo", {
+      type: "bar",
+      data: {
+        labels: filas.ejecutivo.map((f) => f[0]),
+        datasets: [{ data: filas.ejecutivo.map((f) => f[1]), backgroundColor: PALETA[0] }],
+      },
+      options: opcionesBase(),
+    });
+
+    grafico("grafico-sucursal", {
+      type: "bar",
+      data: {
+        labels: filas.sucursal.map((f) => f[0]),
+        datasets: [{ data: filas.sucursal.map((f) => f[1]), backgroundColor: PALETA[1] }],
+      },
+      options: opcionesBase(),
+    });
+
+    grafico("grafico-tipo", {
+      type: "doughnut",
+      data: {
+        labels: filas.tipo.map((f) => f[0]),
+        datasets: [{ data: filas.tipo.map((f) => f[1]), backgroundColor: PALETA }],
+      },
+      options: opcionesBase({
+        scales: {}, // un doughnut no usa ejes
+        plugins: { legend: { display: true, position: "bottom", labels: { boxWidth: 12 } } },
+      }),
+    });
+  }
+
   function actualizarResumen(data) {
     if (!esSupervisor) return;
     $("resumen-supervisor").hidden = data.length === 0;
-    pintarResumen("resumen-ejecutivo", contarPor(data, "user_email"));
-    pintarResumen("resumen-sucursal", contarPor(data, "sucursal"));
-    pintarResumen("resumen-tipo", contarPorTipo(data));
+    if (data.length === 0) return;
+
+    const porEjecutivo = contarPor(data, "user_email");
+    const porSucursal = contarPor(data, "sucursal");
+    const porTipo = contarPorTipo(data);
+
+    pintarResumen("resumen-ejecutivo", porEjecutivo);
+    pintarResumen("resumen-sucursal", porSucursal);
+    pintarResumen("resumen-tipo", porTipo);
+    actualizarGraficos({ ejecutivo: porEjecutivo, sucursal: porSucursal, tipo: porTipo });
   }
 
   function exportarCSV() {
@@ -379,6 +448,10 @@
     $("filtro-hasta").value = "";
     todasLasVentas = [];
     esSupervisor = false;
+    for (const id of Object.keys(graficos)) {
+      graficos[id].destroy();
+      delete graficos[id];
+    }
     mensaje("venta-mensaje", "");
     mostrar("login");
     $("login-email").focus();

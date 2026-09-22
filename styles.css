@@ -95,7 +95,8 @@ code {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
   padding: 0.75rem 1rem;
   background: var(--superficie);
   border-bottom: 1px solid var(--linea);
@@ -150,6 +151,12 @@ code {
   .contenido {
     grid-template-columns: minmax(320px, 380px) 1fr;
     align-items: start;
+  }
+
+  /* Cuando el panel "Nueva venta" está oculto (rol supervisor),
+     la sección de ventas ocupa las dos columnas del grid. */
+  #panel-nueva-venta[hidden] ~ #panel-ventas {
+    grid-column: 1 / -1;
   }
 }
 
@@ -335,6 +342,17 @@ form .boton:not(.secundario) {
   .resumen {
     grid-template-columns: 1fr;
   }
+}
+
+.grafico-wrap {
+  position: relative;
+  height: 190px;
+  margin-bottom: 0.75rem;
+}
+
+.grafico-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .resumen-tabla {

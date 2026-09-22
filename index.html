@@ -95,7 +95,7 @@
         </form>
       </section>
 
-      <section class="panel" aria-labelledby="titulo-ventas">
+      <section class="panel" id="panel-ventas" aria-labelledby="titulo-ventas">
         <h2 id="titulo-ventas">Tus últimas ventas</h2>
 
         <div id="filtros-supervisor" class="filtros" hidden>
@@ -139,6 +139,7 @@
         <div id="resumen-supervisor" class="resumen" hidden>
           <div class="resumen-tabla">
             <h3>Por ejecutivo</h3>
+            <div class="grafico-wrap"><canvas id="grafico-ejecutivo" role="img" aria-label="Gráfico de ventas por ejecutivo"></canvas></div>
             <table>
               <thead><tr><th scope="col">Ejecutivo</th><th scope="col">Ventas</th></tr></thead>
               <tbody id="resumen-ejecutivo"></tbody>
@@ -146,6 +147,7 @@
           </div>
           <div class="resumen-tabla">
             <h3>Por sucursal</h3>
+            <div class="grafico-wrap"><canvas id="grafico-sucursal" role="img" aria-label="Gráfico de ventas por sucursal"></canvas></div>
             <table>
               <thead><tr><th scope="col">Sucursal</th><th scope="col">Ventas</th></tr></thead>
               <tbody id="resumen-sucursal"></tbody>
@@ -153,6 +155,7 @@
           </div>
           <div class="resumen-tabla">
             <h3>Por tipo</h3>
+            <div class="grafico-wrap"><canvas id="grafico-tipo" role="img" aria-label="Gráfico de ventas por tipo"></canvas></div>
             <table>
               <thead><tr><th scope="col">Tipo</th><th scope="col">Ventas</th></tr></thead>
               <tbody id="resumen-tipo"></tbody>
@@ -181,6 +184,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
