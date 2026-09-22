@@ -33,23 +33,57 @@
 
   // ---------- Utilidades ----------
 
-  const CLAVE_SUCURSAL = "registro-ventas:sucursal";
+  const CLAVE_SELECCION = "registro-ventas:seleccion";
 
-  function leerSucursal() {
+  function leerSeleccionGuardada() {
     try {
-      return localStorage.getItem(CLAVE_SUCURSAL) || "";
+      const datos = JSON.parse(localStorage.getItem(CLAVE_SELECCION) || "{}");
+      return { razonSocial: datos.razonSocial || "", sucursal: datos.sucursal || "" };
     } catch {
-      return "";
+      return { razonSocial: "", sucursal: "" };
     }
   }
 
-  function guardarSucursal(valor) {
+  function guardarSeleccion(razonSocial, sucursal) {
     try {
-      localStorage.setItem(CLAVE_SUCURSAL, valor);
+      localStorage.setItem(CLAVE_SELECCION, JSON.stringify({ razonSocial, sucursal }));
     } catch {
       /* el navegador no permite guardar: no pasa nada */
     }
   }
+
+  // ---------- Sucursal dependiente de la razón social ----------
+
+  const MAPA_SUCURSALES = window.SUCURSALES_POR_RAZON || {};
+
+  function poblarSucursales(razonSocial, sucursalAPreseleccionar) {
+    const select = $("sucursal");
+    const opciones = MAPA_SUCURSALES[razonSocial] || [];
+
+    if (!razonSocial || opciones.length === 0) {
+      select.replaceChildren(new Option("Primero elige una razón social", ""));
+      select.disabled = true;
+      return;
+    }
+
+    select.replaceChildren(
+      new Option("Elige una sucursal", "", true, true),
+      ...opciones.map((s) => new Option(s, s))
+    );
+    select.disabled = false;
+    if (sucursalAPreseleccionar && opciones.includes(sucursalAPreseleccionar)) {
+      select.value = sucursalAPreseleccionar;
+    }
+  }
+
+  function restaurarSeleccionGuardada() {
+    const guardada = leerSeleccionGuardada();
+    if (!guardada.razonSocial || !MAPA_SUCURSALES[guardada.razonSocial]) return;
+    $("razon-social").value = guardada.razonSocial;
+    poblarSucursales(guardada.razonSocial, guardada.sucursal);
+  }
+
+  $("razon-social").addEventListener("change", (e) => poblarSucursales(e.target.value));
 
   function mensaje(id, texto, tipo) {
     const el = $(id);
@@ -143,10 +177,9 @@
       return;
     }
 
-    guardarSucursal(registro.sucursal);
+    guardarSeleccion(registro.razon_social, registro.sucursal);
     mensaje("venta-mensaje", `Venta ${registro.folio} guardada.`, "ok");
     $("folio").value = "";
-    $("razon-social").value = "";
     document.querySelectorAll('input[name="tipo"]:checked').forEach((c) => (c.checked = false));
     $("folio").focus();
     cargarVentas();
@@ -426,18 +459,22 @@
   // ---------- Sesión ----------
 
   async function entrar(usuario) {
-    $("usuario-email").textContent = usuario.email || "";
-    if (!$("sucursal").value) $("sucursal").value = leerSucursal();
-    mostrar("app");
-    $("folio").focus();
-
+    // Se resuelve el rol ANTES de mostrar la app: así nunca se alcanza a
+    // pintar por un instante el formulario de ejecutivo si la persona es supervisor.
     esSupervisor = (await obtenerRol(usuario)) === "supervisor";
     aplicarVistaSegunRol();
+
+    $("usuario-email").textContent = usuario.email || "";
+    if (!esSupervisor) restaurarSeleccionGuardada();
+    mostrar("app");
+    if (!esSupervisor) $("folio").focus();
+
     cargarVentas();
   }
 
   function irALogin() {
     $("form-venta").reset();
+    poblarSucursales(""); // limpia opciones de la sesión anterior y vuelve a deshabilitarlo
     $("ventas-cuerpo").replaceChildren();
     $("resumen-ejecutivo").replaceChildren();
     $("resumen-sucursal").replaceChildren();
