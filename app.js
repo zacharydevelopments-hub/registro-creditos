@@ -106,17 +106,21 @@
     e.preventDefault();
     const boton = $("btn-guardar");
 
+    const tiposElegidos = [...document.querySelectorAll('input[name="tipo"]:checked')].map(
+      (c) => c.value
+    );
+
     const registro = {
       folio: $("folio").value.trim(),
-      tipo: $("tipo").value,
+      tipo: tiposElegidos,
       razon_social: $("razon-social").value.trim(),
       sucursal: $("sucursal").value.trim(),
     };
 
     mensaje("venta-mensaje", "");
 
-    if (!registro.folio || !registro.tipo || !registro.razon_social || !registro.sucursal) {
-      mensaje("venta-mensaje", "Completa todos los campos.", "error");
+    if (!registro.folio || registro.tipo.length === 0 || !registro.razon_social || !registro.sucursal) {
+      mensaje("venta-mensaje", "Completa todos los campos y elige al menos un tipo.", "error");
       return;
     }
 
@@ -133,9 +137,7 @@
       const duplicada = error.code === "23505";
       mensaje(
         "venta-mensaje",
-        duplicada
-          ? `El folio ${registro.folio} ya está registrado como ${registro.tipo}.`
-          : "No se pudo guardar la venta. Intenta de nuevo.",
+        duplicada ? `El folio ${registro.folio} ya está registrado.` : "No se pudo guardar la venta. Intenta de nuevo.",
         "error"
       );
       return;
@@ -145,6 +147,7 @@
     mensaje("venta-mensaje", `Venta ${registro.folio} guardada.`, "ok");
     $("folio").value = "";
     $("razon-social").value = "";
+    document.querySelectorAll('input[name="tipo"]:checked').forEach((c) => (c.checked = false));
     $("folio").focus();
     cargarVentas();
   });
@@ -166,10 +169,13 @@
     tr.append(celda(v.folio, "folio"));
 
     const tdTipo = document.createElement("td");
-    const chip = document.createElement("span");
-    chip.className = "tipo";
-    chip.textContent = v.tipo;
-    tdTipo.append(chip);
+    tdTipo.className = "tipos";
+    for (const t of v.tipo || []) {
+      const chip = document.createElement("span");
+      chip.className = "tipo";
+      chip.textContent = t;
+      tdTipo.append(chip);
+    }
     tr.append(tdTipo);
 
     tr.append(celda(v.razon_social), celda(v.sucursal));
@@ -216,7 +222,7 @@
     const hasta = $("filtro-hasta").value;
 
     const filtradas = todasLasVentas.filter((v) => {
-      if (tipo && v.tipo !== tipo) return false;
+      if (tipo && !(v.tipo || []).includes(tipo)) return false;
       if (sucursal && v.sucursal !== sucursal) return false;
       if (ejecutivo && v.user_email !== ejecutivo) return false;
       if (busqueda) {
@@ -255,12 +261,23 @@
     );
   }
 
+  // Cada venta puede tener varios tipos, así que se cuenta por tipo individual, no por combinación.
+  function contarPorTipo(data) {
+    const conteo = new Map();
+    for (const v of data) {
+      for (const t of v.tipo && v.tipo.length ? v.tipo : ["(sin dato)"]) {
+        conteo.set(t, (conteo.get(t) || 0) + 1);
+      }
+    }
+    return [...conteo.entries()].sort((a, b) => b[1] - a[1]);
+  }
+
   function actualizarResumen(data) {
     if (!esSupervisor) return;
     $("resumen-supervisor").hidden = data.length === 0;
     pintarResumen("resumen-ejecutivo", contarPor(data, "user_email"));
     pintarResumen("resumen-sucursal", contarPor(data, "sucursal"));
-    pintarResumen("resumen-tipo", contarPor(data, "tipo"));
+    pintarResumen("resumen-tipo", contarPorTipo(data));
   }
 
   function exportarCSV() {
@@ -270,7 +287,7 @@
     const lineas = [
       encabezado.join(","),
       ...filas.map((v) =>
-        [v.folio, v.tipo, v.razon_social, v.sucursal, v.user_email, formatoFecha(v.created_at)]
+        [v.folio, (v.tipo || []).join(";"), v.razon_social, v.sucursal, v.user_email, formatoFecha(v.created_at)]
           .map(escapar)
           .join(",")
       ),
@@ -331,6 +348,7 @@
 
   function aplicarVistaSegunRol() {
     $("badge-rol").hidden = !esSupervisor;
+    $("panel-nueva-venta").hidden = esSupervisor;
     $("filtros-supervisor").hidden = !esSupervisor;
     $("col-ejecutivo").hidden = !esSupervisor;
     $("titulo-ventas").textContent = esSupervisor ? "Todas las ventas" : "Tus últimas ventas";
