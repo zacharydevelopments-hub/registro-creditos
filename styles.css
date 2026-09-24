@@ -348,6 +348,51 @@ form .boton:not(.secundario) {
   align-self: end;
 }
 
+/* Combobox con buscador (filtro de vendedor) */
+
+.combo {
+  position: relative;
+}
+
+.combo-lista {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  max-height: 14rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.3rem;
+  list-style: none;
+  background: var(--superficie);
+  border: 1px solid var(--linea-fuerte);
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(22, 34, 46, 0.14);
+}
+
+.combo-opcion {
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.combo-opcion:hover,
+.combo-opcion.resaltada {
+  background: var(--acento-suave);
+  color: var(--acento-hover);
+}
+
+.combo-vacio {
+  padding: 0.45rem 0.6rem;
+  font-size: 0.9rem;
+  color: var(--tinta-suave);
+}
+
 @media (max-width: 600px) {
   .filtros {
     flex-direction: column;

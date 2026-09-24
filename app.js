@@ -216,6 +216,7 @@
 
   let esSupervisor = false;
   let todasLasVentas = []; // solo se usa en modo supervisor, para filtrar sin volver a consultar
+  let vendedoresDisponibles = []; // opciones vigentes del combobox de vendedor
 
   function celda(texto, clase) {
     const td = document.createElement("td");
@@ -272,6 +273,15 @@
     }
     llenar($("filtro-sucursal"), data.map((v) => v.sucursal), "Todas");
     llenar($("filtro-ejecutivo"), data.map((v) => v.user_email), "Todos");
+
+    vendedoresDisponibles = [...new Set(data.map((v) => v.vendedor))]
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b, "es"));
+    // Si el vendedor elegido ya no aparece en los datos (cambió el filtro de fecha, etc.), se limpia.
+    const vendedorActual = $("filtro-vendedor").value.trim();
+    if (vendedorActual && !vendedoresDisponibles.includes(vendedorActual)) {
+      $("filtro-vendedor").value = "";
+    }
   }
 
   function aplicarFiltros() {
@@ -279,6 +289,7 @@
     const tipo = $("filtro-tipo").value;
     const sucursal = $("filtro-sucursal").value;
     const ejecutivo = $("filtro-ejecutivo").value;
+    const vendedor = $("filtro-vendedor").value.trim();
     const desde = $("filtro-desde").value; // "YYYY-MM-DD" o ""
     const hasta = $("filtro-hasta").value;
 
@@ -286,6 +297,7 @@
       if (tipo && !(v.tipo || []).includes(tipo)) return false;
       if (sucursal && v.sucursal !== sucursal) return false;
       if (ejecutivo && v.user_email !== ejecutivo) return false;
+      if (vendedor && v.vendedor !== vendedor) return false;
       if (busqueda) {
         const texto = `${v.folio} ${v.razon_social} ${v.vendedor || ""}`.toLowerCase();
         if (!texto.includes(busqueda)) return false;
@@ -438,6 +450,112 @@
   $("filtro-desde").addEventListener("change", aplicarFiltros);
   $("filtro-hasta").addEventListener("change", aplicarFiltros);
   $("btn-exportar").addEventListener("click", exportarCSV);
+
+  // ---------- Filtro de vendedor: combobox con buscador ----------
+  // Escribir filtra las opciones que se muestran en la lista; el filtro de la
+  // tabla se aplica recién al elegir una opción (clic o Enter) o al dejar el
+  // campo vacío, igual que los demás <select> de filtro.
+
+  let vendedorResaltado = -1;
+
+  function listaVendedoresFiltrados(texto) {
+    const t = texto.trim().toLowerCase();
+    if (!t) return vendedoresDisponibles;
+    return vendedoresDisponibles.filter((v) => v.toLowerCase().includes(t));
+  }
+
+  function pintarListaVendedor(items) {
+    const lista = $("lista-vendedor");
+    vendedorResaltado = -1;
+    if (items.length === 0) {
+      const li = document.createElement("li");
+      li.className = "combo-vacio";
+      li.textContent = "Sin coincidencias";
+      lista.replaceChildren(li);
+    } else {
+      lista.replaceChildren(
+        ...items.map((v) => {
+          const li = document.createElement("li");
+          li.role = "option";
+          li.className = "combo-opcion";
+          li.textContent = v;
+          li.dataset.valor = v;
+          return li;
+        })
+      );
+    }
+    lista.hidden = false;
+    $("filtro-vendedor").setAttribute("aria-expanded", "true");
+  }
+
+  function abrirListaVendedor() {
+    pintarListaVendedor(listaVendedoresFiltrados($("filtro-vendedor").value));
+  }
+
+  function cerrarListaVendedor() {
+    $("lista-vendedor").hidden = true;
+    $("filtro-vendedor").setAttribute("aria-expanded", "false");
+    vendedorResaltado = -1;
+  }
+
+  function seleccionarVendedor(valor) {
+    $("filtro-vendedor").value = valor;
+    cerrarListaVendedor();
+    aplicarFiltros();
+  }
+
+  function resaltarOpcion(indice) {
+    const opciones = [...$("lista-vendedor").querySelectorAll(".combo-opcion")];
+    opciones.forEach((li, i) => li.classList.toggle("resaltada", i === indice));
+    if (indice >= 0 && opciones[indice]) opciones[indice].scrollIntoView({ block: "nearest" });
+    vendedorResaltado = indice;
+  }
+
+  $("filtro-vendedor").addEventListener("focus", abrirListaVendedor);
+  $("filtro-vendedor").addEventListener("input", () =>
+    pintarListaVendedor(listaVendedoresFiltrados($("filtro-vendedor").value))
+  );
+
+  $("filtro-vendedor").addEventListener("keydown", (e) => {
+    if ($("lista-vendedor").hidden) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") abrirListaVendedor();
+      return;
+    }
+    const opciones = [...$("lista-vendedor").querySelectorAll(".combo-opcion")];
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      resaltarOpcion(Math.min(vendedorResaltado + 1, opciones.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      resaltarOpcion(Math.max(vendedorResaltado - 1, 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (vendedorResaltado >= 0 && opciones[vendedorResaltado]) {
+        seleccionarVendedor(opciones[vendedorResaltado].dataset.valor);
+      } else if (opciones.length === 1) {
+        seleccionarVendedor(opciones[0].dataset.valor);
+      }
+    } else if (e.key === "Escape") {
+      cerrarListaVendedor();
+    }
+  });
+
+  // Evita que el clic en una opción le quite el foco al input antes de registrarse.
+  $("lista-vendedor").addEventListener("mousedown", (e) => e.preventDefault());
+  $("lista-vendedor").addEventListener("click", (e) => {
+    const li = e.target.closest(".combo-opcion");
+    if (li) seleccionarVendedor(li.dataset.valor);
+  });
+
+  $("filtro-vendedor").addEventListener("blur", () => {
+    cerrarListaVendedor();
+    const valor = $("filtro-vendedor").value.trim();
+    // Lo escrito no corresponde a ningún vendedor real: se trata como "Todos".
+    if (valor && !vendedoresDisponibles.includes(valor)) {
+      $("filtro-vendedor").value = "";
+    }
+    aplicarFiltros();
+  });
 
   async function cargarVentas() {
     const estado = $("ventas-estado");
@@ -640,6 +758,9 @@
     $("resumen-tipo").replaceChildren();
     $("resumen-supervisor").hidden = true;
     $("filtro-busqueda").value = "";
+    $("filtro-vendedor").value = "";
+    cerrarListaVendedor();
+    vendedoresDisponibles = [];
     $("filtro-desde").value = "";
     $("filtro-hasta").value = "";
     todasLasVentas = [];

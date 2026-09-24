@@ -138,6 +138,20 @@
               <option value="">Todos</option>
             </select>
           </div>
+          <div class="campo campo-filtro combo">
+            <label for="filtro-vendedor">Vendedor</label>
+            <input
+              id="filtro-vendedor"
+              type="text"
+              autocomplete="off"
+              placeholder="Todos"
+              role="combobox"
+              aria-expanded="false"
+              aria-controls="lista-vendedor"
+              aria-autocomplete="list"
+            >
+            <ul id="lista-vendedor" class="combo-lista" role="listbox" hidden></ul>
+          </div>
           <div class="campo campo-filtro">
             <label for="filtro-desde">Desde</label>
             <input id="filtro-desde" type="date">
