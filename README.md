@@ -3,9 +3,10 @@
 Página web con login para que los ejecutivos registren:
 
 - Folio de venta
-- Tipo (CC, CI, Seguro, MPP)
+- Vendedor
+- Tipo (CC, CI, Seguro, MPP — se puede marcar más de uno)
 - Razón social
-- Sucursal
+- Sucursal (depende de la razón social elegida)
 
 Sitio estático (HTML + CSS + JS) con **Supabase** (login y base de datos), publicado con **Vercel** desde **GitHub**. No necesita build ni Node.
 
@@ -13,11 +14,11 @@ Sitio estático (HTML + CSS + JS) con **Supabase** (login y base de datos), publ
 
 1. Crea un proyecto en [supabase.com](https://supabase.com).
 2. Abre **SQL Editor**, pega el contenido de `schema.sql` y ejecútalo. Crea la tabla `ventas` con seguridad por fila (cada ejecutivo solo ve y guarda lo suyo).
-3. Crea los usuarios en **Authentication → Users → Add user → Create new user**, con correo y contraseña (marca *Auto Confirm User*).
+3. Crea los usuarios en **Authentication → Users → Add user → Create new user**, con correo y contraseña (marca *Auto Confirm User*), o agrégalos más adelante desde la pestaña **Usuarios** del supervisor.
 4. Recomendado: en **Authentication → Sign In / Providers** desactiva el registro libre de usuarios (*Allow new users to sign up*), para que solo entren quienes tú crees.
 5. Copia la **Project URL** y la clave **anon / publishable** desde **Project Settings → API** y pégalas en `config.js`.
 
-> La clave anon es pública por diseño. Nunca uses la `service_role` en este proyecto.
+> La clave anon es pública por diseño. Nunca uses la `service_role` en este proyecto (salvo dentro de la Edge Function, ver más abajo).
 
 ## 2. Probar en tu computador (opcional)
 
@@ -47,7 +48,7 @@ git push -u origin main
 
 Además de los ejecutivos, existe el rol **supervisor**. Al entrar, en vez del formulario simple del ejecutivo, ve una barra con **3 pestañas**:
 
-1. **Resumen** — la vista que ya tenía: todas las ventas de todos los ejecutivos, con filtros (sucursal, tipo, ejecutivo, fechas, búsqueda), gráficos y exportar a CSV. Es la pestaña que se abre al entrar.
+1. **Resumen** — todas las ventas de todos los ejecutivos, con filtros (sucursal, tipo, ejecutivo, fechas, búsqueda), gráficos y exportar a CSV. Es la pestaña que se abre al entrar.
 2. **Ingreso de venta** — el mismo formulario "Nueva venta" que usan los ejecutivos: el supervisor también puede registrar ventas a su nombre.
 3. **Usuarios** — agregar, bloquear/desbloquear y eliminar cuentas (ver más abajo).
 
@@ -64,7 +65,7 @@ Para devolverlo a ejecutivo, ejecuta lo mismo con `role = 'ejecutivo'`.
 
 ## Administrar usuarios (pestaña "Usuarios")
 
-Crear, bloquear y eliminar cuentas son operaciones que **Supabase exige hacer con privilegios de administrador** (la clave `service_role`), y esa clave nunca debe pegarse en `config.js` ni en ningún archivo que suba a GitHub: cualquiera que la viera tomaría control total de tu base de datos. Por eso estas tres acciones no se hacen directamente desde el navegador, sino a través de una función que corre en el servidor de Supabase: `supabase/functions/admin-usuarios/index.ts`.
+Crear, bloquear y eliminar cuentas son operaciones que **Supabase exige hacer con privilegios de administrador** (la clave `service_role`), y esa clave nunca debe pegarse en `config.js` ni en ningún archivo que subas a GitHub: cualquiera que la viera tomaría control total de tu base de datos. Por eso estas tres acciones no se hacen directamente desde el navegador, sino a través de una función que corre en el servidor de Supabase: `supabase/functions/admin-usuarios/index.ts`.
 
 **Instalarla (una sola vez, sin instalar nada en tu computador):**
 
@@ -91,11 +92,15 @@ Para actualizar la lista de sucursales (por ejemplo si abren una sucursal nueva)
 
 ## Tipo con selección múltiple
 
-En "Nueva venta", el campo **Tipo** ahora son casillas (CC, CI, Seguro, MPP) y el ejecutivo puede marcar más de una para el mismo folio. En la tabla y en el resumen del supervisor, cada tipo se muestra y se cuenta por separado.
+En "Nueva venta", el campo **Tipo** son casillas (CC, CI, Seguro, MPP) y el ejecutivo puede marcar más de una para el mismo folio. En la tabla y en el resumen del supervisor, cada tipo se muestra y se cuenta por separado.
 
-Si ya tenías la tabla `ventas` creada con `tipo` como texto simple, vuelve a ejecutar `schema.sql`: convierte la columna a arreglo automáticamente sin borrar datos existentes.
+## Vendedor
 
-> Si ya tenías el proyecto de Supabase creado antes de este cambio, vuelve a pegar el contenido completo de `schema.sql` en el SQL Editor y ejecútalo: es seguro repetirlo, crea la tabla de perfiles, migra a los usuarios existentes y actualiza los permisos sin duplicar nada. Este mismo archivo también actualiza el permiso de ingreso de ventas para que el supervisor pueda usar su pestaña "Ingreso de venta".
+Debajo de **Folio de venta** hay un campo de texto para el **Vendedor**. Es obligatorio y se guarda junto con el resto de la venta: aparece como columna en la tabla de ventas (tanto para el ejecutivo como para el supervisor) y en el CSV exportado. No se recuerda entre ventas como sí ocurre con la sucursal, porque suele cambiar de un folio a otro.
+
+Si ya tenías ventas guardadas antes de este cambio, `schema.sql` las completa automáticamente con el valor `(sin dato)` en Vendedor para no perderlas; edítalas manualmente en Supabase → **Table Editor** si quieres corregir ese valor.
+
+> Si ya tenías el proyecto de Supabase creado antes de estos cambios, vuelve a pegar el contenido completo de `schema.sql` en el SQL Editor y ejecútalo: es seguro repetirlo, agrega la columna `vendedor`, crea la tabla de perfiles, migra a los usuarios existentes y actualiza los permisos sin duplicar nada.
 
 ## Ver todos los registros
 

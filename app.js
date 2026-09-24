@@ -165,6 +165,7 @@
 
     const registro = {
       folio: $("folio").value.trim(),
+      vendedor: $("vendedor").value.trim(),
       tipo: tiposElegidos,
       razon_social: $("razon-social").value.trim(),
       sucursal: $("sucursal").value.trim(),
@@ -172,7 +173,13 @@
 
     mensaje("venta-mensaje", "");
 
-    if (!registro.folio || registro.tipo.length === 0 || !registro.razon_social || !registro.sucursal) {
+    if (
+      !registro.folio ||
+      !registro.vendedor ||
+      registro.tipo.length === 0 ||
+      !registro.razon_social ||
+      !registro.sucursal
+    ) {
       mensaje("venta-mensaje", "Completa todos los campos y elige al menos un tipo.", "error");
       return;
     }
@@ -199,6 +206,7 @@
     guardarSeleccion(registro.razon_social, registro.sucursal);
     mensaje("venta-mensaje", `Venta ${registro.folio} guardada.`, "ok");
     $("folio").value = "";
+    $("vendedor").value = "";
     document.querySelectorAll('input[name="tipo"]:checked').forEach((c) => (c.checked = false));
     $("folio").focus();
     cargarVentas();
@@ -219,6 +227,7 @@
   function fila(v) {
     const tr = document.createElement("tr");
     tr.append(celda(v.folio, "folio"));
+    tr.append(celda(v.vendedor || ""));
 
     const tdTipo = document.createElement("td");
     tdTipo.className = "tipos";
@@ -278,7 +287,7 @@
       if (sucursal && v.sucursal !== sucursal) return false;
       if (ejecutivo && v.user_email !== ejecutivo) return false;
       if (busqueda) {
-        const texto = `${v.folio} ${v.razon_social}`.toLowerCase();
+        const texto = `${v.folio} ${v.razon_social} ${v.vendedor || ""}`.toLowerCase();
         if (!texto.includes(busqueda)) return false;
       }
       const fechaVenta = v.created_at.slice(0, 10); // fecha local aproximada, suficiente para filtrar por día
@@ -403,12 +412,12 @@
 
   function exportarCSV() {
     const filas = aplicarFiltros();
-    const encabezado = ["Folio", "Tipo", "Razón social", "Sucursal", "Ejecutivo", "Fecha"];
+    const encabezado = ["Folio", "Vendedor", "Tipo", "Razón social", "Sucursal", "Ejecutivo", "Fecha"];
     const escapar = (texto) => `"${String(texto ?? "").replace(/"/g, '""')}"`;
     const lineas = [
       encabezado.join(","),
       ...filas.map((v) =>
-        [v.folio, (v.tipo || []).join(";"), v.razon_social, v.sucursal, v.user_email, formatoFecha(v.created_at)]
+        [v.folio, v.vendedor, (v.tipo || []).join(";"), v.razon_social, v.sucursal, v.user_email, formatoFecha(v.created_at)]
           .map(escapar)
           .join(",")
       ),
@@ -432,7 +441,7 @@
 
   async function cargarVentas() {
     const estado = $("ventas-estado");
-    const columnas = "folio, tipo, razon_social, sucursal, user_email, created_at";
+    const columnas = "folio, vendedor, tipo, razon_social, sucursal, user_email, created_at";
 
     // El supervisor trae más registros y filtra en pantalla; el ejecutivo solo ve los suyos (RLS).
     const consulta = db
